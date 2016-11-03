@@ -6,7 +6,7 @@
 #include <atlstr.h>
 #include <iostream>
 #include <fstream>
-
+#include <strstream>
 using namespace std;
 
 #define SVCNAME TEXT("LogWinServer")
@@ -18,16 +18,19 @@ SERVICE_STATUS_HANDLE gSvcStatusHandle;
 HANDLE ghSvcStopEvent = NULL;
 
 
-VOID WRITE_LOG(CString log)
+VOID WRITE_LOG(string log)
 {
 	SYSTEMTIME Time;
 	GetLocalTime(&Time);
 
-	CString strTime;
-	strTime.Format(L"%d-%d-%d %d:%d:%d", Time.wYear, Time.wMonth, Time.wDay, Time.wHour, Time.wMinute, Time.wMilliseconds);
-	logFile.open("D:\\Project\\LogWinServer\\Log.txt", ios::app);
+	string strTime;
+	
+	if (!logFile.is_open())
+		return;
+	logFile << Time.wYear << "-" << Time.wMonth << "-" << Time.wDay << " " << Time.wHour << ":" << Time.wMinute << ":" << Time.wMilliseconds << "   ";
+	logFile << log.c_str() << endl;
+	logFile.flush();
 
-	logFile << strTime << "  " << strTime << endl;
 
 }
 VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR* lpszArgv);
@@ -36,7 +39,8 @@ VOID ReportSvcStatus(DWORD dwCurrentState, DWORD dwWin32ExitCode, DWORD dwWaitHi
 VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv);
 int _tmain(int argc, _TCHAR* argv[])
 {
-	WRITE_LOG(L"atest...");
+	logFile.open("D:\\Project\\LogWinServer\\Log.txt", ios::app);  //  Open 与 Close 必须成对出现
+
 	SERVICE_TABLE_ENTRY DispathcTable[] =
 	{
 		{ SVCNAME, (LPSERVICE_MAIN_FUNCTION)SvcMain },
@@ -47,11 +51,11 @@ int _tmain(int argc, _TCHAR* argv[])
 	if (!success)
 	{
 		//error occured
-		WRITE_LOG(L"DispathcTable error");
+		WRITE_LOG("DispathcTable error");
 	}
 	else
 	{
-		WRITE_LOG(L"Service DIspatch");
+		WRITE_LOG("Service DIspatch");
 	}
 
 	return 0;
@@ -62,16 +66,16 @@ VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR* lpszArgv)
 	//RegisterServiceCtrlHandler should be the first nonfailing function 
 	// in ServiceMain so the service can use the status handle returned by 
 	// this function to call SetServiceStatus with the SERVICE_STOPPED state if an error occurs
-	WRITE_LOG(L"Start SvcMain.");
+	//WRITE_LOG("Start SvcMain.");
 	gSvcStatusHandle = RegisterServiceCtrlHandler(SVCNAME, SvcCtrlHandler);
 
 	if (!gSvcStatusHandle)
 	{
-		WRITE_LOG(L"RegisterServiceCtrlHandler Failed.");
+		WRITE_LOG("RegisterServiceCtrlHandler Failed.");
 		return;
 	}
 	else{
-		WRITE_LOG(L"RegisterServiceCtrlHandler succeed.");
+		WRITE_LOG("RegisterServiceCtrlHandler succeed.");
 	}
 	// These SERVICE_STATUS members remain as set here
 	gSvcStatus.dwServiceType = SERVICE_WIN32_SHARE_PROCESS;
@@ -81,7 +85,7 @@ VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR* lpszArgv)
 
 	ReportSvcStatus(SERVICE_START_PENDING, NO_ERROR, 3000);
 
-	WRITE_LOG(L"Update Service state to Pending");
+	WRITE_LOG("Update Service state to Pending");
 
 	SvcInit(dwArgc, lpszArgv);
 }
@@ -142,7 +146,7 @@ VOID ReportSvcStatus(DWORD dwCurrentState, DWORD dwWin32ExitCode, DWORD dwWaitHi
 
 VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
 {
-	WRITE_LOG(L"SvcInit....");
+	WRITE_LOG("SvcInit....");
 	ghSvcStopEvent = CreateEvent(NULL
 		, TRUE,
 		FALSE,		// not signaled
@@ -150,17 +154,17 @@ VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
 
 	if (ghSvcStopEvent == NULL)
 	{
-		WRITE_LOG(L"CreateEvent error");
+		WRITE_LOG("CreateEvent error");
 		return;
 	}
 
-	WRITE_LOG(L"Update Service state to Running");
+	WRITE_LOG("Update Service state to Running");
 	ReportSvcStatus(SERVICE_RUNNING, NO_ERROR, 0);
 
 	do {
 		
 		Sleep(1000 * 30);
-		WRITE_LOG(L"Service is working");
+		WRITE_LOG("Service is working");
 
 	} while (WaitForSingleObject(ghSvcStopEvent, 1000) != WAIT_OBJECT_0);
 
